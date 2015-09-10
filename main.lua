@@ -16,7 +16,7 @@ function love.load()
 	for i,v in ipairs(objects) do
 		print(i,v)
 	end
-	COEFICIENTEFORCA = 50
+	COEFICIENTEFORCA = 30
 	
 end
 
