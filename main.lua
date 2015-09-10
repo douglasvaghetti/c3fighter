@@ -1,6 +1,10 @@
+local socket = require "socket"
+local address, port = "localhost", 12345
+local entity -- entity is what we'll be controlling
+local updaterate = 0.1 -- how long to wait, in seconds, before requesting an update
+local t
+
 function love.load()
-	love.physics.setMeter(64) --the height of a meter our worlds will be 64px
-	world = love.physics.newWorld(0, 0, true)
 	bauru = love.graphics.newImage("gfx/bauru.png")
 	bicho = love.graphics.newImage("gfx/bicho.png")
 	celso = love.graphics.newImage("gfx/celso.png")
@@ -10,40 +14,74 @@ function love.load()
 	vagner = love.graphics.newImage("gfx/vagner.png")
 	ze = love.graphics.newImage("gfx/ze.png")
 	objects = {}
+
 	print("teste")
-	table.insert(objects,loadPlayer(100,300,pedro))
-	table.insert(objects,loadPlayer(300,300,bauru))
 	for i,v in ipairs(objects) do
 		print(i,v)
 	end
-	COEFICIENTEFORCA = 30
-	
+	COEFICIENTEFORCA = 5
+
+
+
+	udp = socket.udp()
+	udp:settimeout(0)
+	udp:setpeername(address, port)
+	math.randomseed(os.time()) 
+ 
+	entity = tostring(math.random(99999))
+	objects[entity] = loadPlayer(-1,-1,bauru)
+	local dg = string.format("%s %s %d %d", entity, 'at', 320, 240)
+	--udp:send(dg)
+	t = 0 -- (re)set t to 0
 end
 
-function love.draw()
-	for i,v in ipairs(objects) do
 
-		--love.graphics.draw(v.grafico,v.body:getX()-v.shape:getRadius(),v.body:getY()-v.shape:getRadius())
-		v.draw()
-		--print(v.body:getX(),v.body:getY())
+
+function love.draw()
+	love.graphics.setColor(255,0, 0)
+	love.graphics.setLineWidth(10.0)
+    love.graphics.circle("line", love.window.getWidth()/2, love.window.getHeight()/2, 300, 100); -- Draw white circle with 100 segments.
+	for i,v in ipairs(objects) do
+		v.draw()	
 	end
 end
 
 function love.update(dt)
-	world:update(dt)
-	for i,v in ipairs(objects) do
-		if i ~= 1 then 
-			x, y = love.mouse.getPosition( )
-			local fx,fy = (x-v.body:getX()),(y-v.body:getY())
-			v.body:applyForce(fx*5,fy*5)
-		end
-		local fx = (love.window.getWidth()/2-v.body:getX())*COEFICIENTEFORCA
-		local fy = (love.window.getHeight()/2-v.body:getY())*COEFICIENTEFORCA
-		v.body:applyForce(fx,fy)
+	local fx = ((love.window.getWidth()/2-objects[entity].x))*COEFICIENTEFORCA
+	local fy = ((love.window.getHeight()/2-objects[entity].y))*COEFICIENTEFORCA
+
+
+	t = t + dt
+	if t > updaterate then
+		local x, y = 0, 0
+		local dg = string.format("%s %s %f %f", entity, 'update', fx, fy)
+		udp:send(dg)
+		t=t-updaterate -- set t for the next round
 	end
+
+	repeat
+		data, msg = udp:receive()
+ 
+		if data then 
+			ent, cmd, parms = data:match("^(%S*) (%S*) (.*)")
+			if cmd == 'at' then
+				local x, y = parms:match("^(%-?[%d.e]*) (%-?[%d.e]*)$")
+				assert(x and y) 
+				x, y = tonumber(x), tonumber(y)
+				if objects[ent] then
+					objects[ent].x = x
+					objects[ent].y = y
+				else
+					objects[ent] = loadPlayer(x,y,bauru)
+				end
+			else
+				print("unrecognised command:", cmd)
+			end
+		elseif msg ~= 'timeout' then 
+			error("Network error: "..tostring(msg))
+		end
+	until not data 
 end
-
-
 
 local function drawCauda(cauda,tamMax,tamanhoCauda)
 
@@ -51,7 +89,6 @@ local function drawCauda(cauda,tamMax,tamanhoCauda)
 
 		love.graphics.setColor(255, 255, 255,math.max((i/tamanhoCauda)*255-20,20))
 		love.graphics.circle("fill", v.x, v.y, (tamMax-5)*(i/tamanhoCauda)+5)
-		--print ("i = "..i.." "..math.max((i/tamanhoCauda)*255-20,20))
 	end
 end
 
@@ -66,12 +103,10 @@ local function geraFuncaoDraw(grafico,raio,body)
 	end
 end	
 
-function loadPlayer(posx,posy,grafico)
+function loadPlayer(x,y,grafico)     
 	local player = {}
-	player.body = love.physics.newBody(world, posx, posy, "dynamic") --place the body in the center of the world and make it dynamic, so it can move around
-	player.shape = love.physics.newCircleShape(40) --the ball's shape has a radius of 20
-	player.fixture = love.physics.newFixture(player.body, player.shape, 1) -- Attach fixture to body and give it a density of 1.
-	player.fixture:setRestitution(0.9) --let the ball bounce
-	player.draw = geraFuncaoDraw(grafico,40,player.body)
-	return player
+	player.x = x
+	player.y = y
+	player.draw = geraFuncaoDraw(grafico,40,player.body)     
+	return player 
 end
