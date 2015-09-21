@@ -1,38 +1,74 @@
 local socket = require "socket"
-local address, port = "localhost", 12345
 local entity -- entity is what we'll be controlling
-local updaterate = 0.1 -- how long to wait, in seconds, before requesting an update
-local t
+local updaterate = 0.01 -- how long to wait, in seconds, before requesting an update
+local t,fx,fy
 
-function love.load()
-	bauru = love.graphics.newImage("gfx/bauru.png")
-	bicho = love.graphics.newImage("gfx/bicho.png")
-	celso = love.graphics.newImage("gfx/celso.png")
-	glauber = love.graphics.newImage("gfx/glauber.png")
-	pedro = love.graphics.newImage("gfx/pedro.png")
-	silvia = love.graphics.newImage("gfx/silvia.png")
-	vagner = love.graphics.newImage("gfx/vagner.png")
-	ze = love.graphics.newImage("gfx/ze.png")
-	objects = {}
+graficos = {
+		bauru = love.graphics.newImage("gfx/bauru.png"),
+		bicho = love.graphics.newImage("gfx/bicho.png"),
+		celso = love.graphics.newImage("gfx/celso.png"),
+		glauber = love.graphics.newImage("gfx/glauber.png"),
+		pedro = love.graphics.newImage("gfx/pedro.png"),
+		silvia = love.graphics.newImage("gfx/silvia.png"),
+		vagner = love.graphics.newImage("gfx/vagner.png"),
+		ze = love.graphics.newImage("gfx/ze.png"),
+	}
 
-	print("teste")
-	for i,v in ipairs(objects) do
-		print(i,v)
+local function recebeMensagem()
+	data, msg = udp:receive()
+ 
+	if data then 
+		ent, cmd, parms = data:match("^(%S*) (%S*) (.*)")
+		if cmd == 'at' then
+			local x, y = parms:match("^(%-?[%d.e]*) (%-?[%d.e]*)$")
+			assert(x and y) 
+			x, y = tonumber(x), tonumber(y)
+			if objects[ent] then
+				objects[ent].x = x
+				objects[ent].y = y
+			else
+				objects[ent] = loadPlayer(x,y,graficos["bauru"])
+			end
+		else
+			print("unrecognised command:", cmd)
+		end
+	elseif msg ~= 'timeout' then 
+		error("Network error: "..tostring(msg))
 	end
+
+	return data~= nil
+end
+
+function love.load(args)
+	
+	objects = {}
 	COEFICIENTEFORCA = 5
-
-
 
 	udp = socket.udp()
 	udp:settimeout(0)
-	udp:setpeername(address, port)
-	math.randomseed(os.time()) 
- 
-	entity = tostring(math.random(99999))
-	objects[entity] = loadPlayer(-1,-1,bauru)
-	local dg = string.format("%s %s %d %d", entity, 'at', 320, 240)
-	--udp:send(dg)
+	if #args ~=3 then
+		print("modo de uso: (na pasta do jogo) love . ipservidor professor")
+		love.event.quit()
+	end
+	local ip_servidor = args[2]
+	local professor = args[3]
+	if graficos[professor]==nil then
+		print("professor desconhecido")
+		love.event.quit()
+	end
+	print ("iniciando cliente, servidor =  ",ip_servidor, "professor = ",professor)
+	udp:setpeername(ip_servidor, 12345)
+	math.randomseed(os.time())
+	euMesmo = tostring(math.random(99999))
+
+	local init = string.format("%s %s %s", euMesmo, 'init', professor)
+	udp:send(init)
 	t = 0 -- (re)set t to 0
+	retorno = false
+	while not retorno do
+		retorno = recebeMensagem() --espera a primeira posição
+	end
+
 end
 
 
@@ -40,48 +76,39 @@ end
 function love.draw()
 	love.graphics.setColor(255,0, 0)
 	love.graphics.setLineWidth(10.0)
+	if( fx and fy ) then 
+		love.graphics.print("fx = "..fx.." fy = "..fy,10,10)
+	end
     love.graphics.circle("line", love.window.getWidth()/2, love.window.getHeight()/2, 300, 100); -- Draw white circle with 100 segments.
-	for i,v in ipairs(objects) do
+	for i,v in pairs(objects) do
 		v.draw()	
 	end
 end
 
+local function clamp(x,minx,maxx)
+	return math.max(minx,math.min(maxx,x))
+end
+
 function love.update(dt)
-	local fx = ((love.window.getWidth()/2-objects[entity].x))*COEFICIENTEFORCA
-	local fy = ((love.window.getHeight()/2-objects[entity].y))*COEFICIENTEFORCA
-
-
+	
 	t = t + dt
+	local maxForca = 200
 	if t > updaterate then
-		local x, y = 0, 0
-		local dg = string.format("%s %s %f %f", entity, 'update', fx, fy)
+		fx = ((love.mouse.getX()-objects[euMesmo].x))*COEFICIENTEFORCA
+		fy = ((love.mouse.getY()-objects[euMesmo].y))*COEFICIENTEFORCA
+		fx = clamp(fx,-maxForca,maxForca)
+		fy = clamp(fy,-maxForca,maxForca)
+		local dg = string.format("%s %s %f %f", euMesmo, 'update', fx, fy)
 		udp:send(dg)
 		t=t-updaterate -- set t for the next round
 	end
-
+	local retorno
 	repeat
-		data, msg = udp:receive()
- 
-		if data then 
-			ent, cmd, parms = data:match("^(%S*) (%S*) (.*)")
-			if cmd == 'at' then
-				local x, y = parms:match("^(%-?[%d.e]*) (%-?[%d.e]*)$")
-				assert(x and y) 
-				x, y = tonumber(x), tonumber(y)
-				if objects[ent] then
-					objects[ent].x = x
-					objects[ent].y = y
-				else
-					objects[ent] = loadPlayer(x,y,bauru)
-				end
-			else
-				print("unrecognised command:", cmd)
-			end
-		elseif msg ~= 'timeout' then 
-			error("Network error: "..tostring(msg))
-		end
-	until not data 
+		retorno = recebeMensagem()
+	until not retorno 
 end
+
+
 
 local function drawCauda(cauda,tamMax,tamanhoCauda)
 
@@ -92,13 +119,14 @@ local function drawCauda(cauda,tamMax,tamanhoCauda)
 	end
 end
 
-local function geraFuncaoDraw(grafico,raio,body)
+local function geraFuncaoDraw(grafico,raio,player)
 	local escala = 2*raio/grafico:getWidth()
 	local cauda = {}
 	return  function() 
 				drawCauda(cauda,grafico:getWidth()*escala/2,20)
-				love.graphics.draw(grafico,body:getX(),body:getY(),body:getAngle(),escala,escala,grafico:getWidth()/2,grafico:getWidth()/2)
-				table.insert(cauda,{x=body:getX(),y=body:getY()})
+				love.graphics.draw(grafico,player.x,player.y,0,escala,escala,grafico:getWidth()/2,grafico:getWidth()/2)
+				--TODO: AJUSTAR O ANGULO TAMBEM
+				table.insert(cauda,{x=player.x,y=player.y})
 				if #cauda==20 then table.remove(cauda,1) end
 	end
 end	
@@ -107,6 +135,6 @@ function loadPlayer(x,y,grafico)
 	local player = {}
 	player.x = x
 	player.y = y
-	player.draw = geraFuncaoDraw(grafico,40,player.body)     
+	player.draw = geraFuncaoDraw(grafico,40,player)     
 	return player 
 end
