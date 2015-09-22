@@ -58,13 +58,13 @@ function love.update(dt)
 				local angulo = (math.random(360)/180.0)*math.pi
 				local x = love.window.getWidth()/2+math.cos(angulo)*100
 				local y = love.window.getHeight()/2+math.sin(angulo)*100
-				table.insert(listaDeJogadores,msg_or_ip)
+				table.insert(listaDeJogadores,{ip=msg_or_ip,porta=port_or_nil})
 				jogadores[entity] = loadPlayer(x,y,nome)
 				if #listaDeJogadores == numeroDeJogadores then
 					print("montou a lista completa de jogadores")
-					for index,ip_jogador in ipairs(listaDeJogadores) do	
+					for index,outroJogador in ipairs(listaDeJogadores) do	
 						for key, v in pairs(jogadores) do
-							udp:sendto(string.format("%s %s %d %d %s", key, 'init', v.body:getX(), v.body:getY(), v.grafico), ip_jogador,  port_or_nil)
+							udp:sendto(string.format("%s %s %d %d %s", key, 'init', v.body:getX(), v.body:getY(), v.grafico), outroJogador.ip,  outroJogador.porta)
 						end
 					end
 					ESTADO = "jogando"
