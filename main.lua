@@ -40,9 +40,9 @@ local function recebeMensagem()
 		elseif cmd == 'derrotado' then
 			print("jogador ",ent," eliminado")
 			if objects[ent] then
-				table.remove(objects,ent)
+				objects[ent] = nil
 			end
-			if entidade==euMesmo then
+			if ent==euMesmo then
 				ESTADO = "MORTO"
 			end
 		elseif cmd == 'vencedor' then

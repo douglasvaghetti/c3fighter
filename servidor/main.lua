@@ -45,7 +45,7 @@ function love.update(dt)
 		data, msg_or_ip, port_or_nil = udp:receivefrom()
 		if data then
 			entity, cmd, parms = data:match("^(%S*) (%S*) (.*)")		
-			if cmd == 'update' then
+			if cmd == 'update' and jogadores[entity] then
 				local x, y = parms:match("^(%-?[%d.e]*) (%-?[%d.e]*)$")
 				assert(x and y) -- validation is better, but asserts will serve.
 				x, y = tonumber(x), tonumber(y)
@@ -72,10 +72,8 @@ function love.update(dt)
 					end
 					ESTADO = "jogando"
 				end
-			elseif msg_or_ip ~= 'timeout' then
-				error("Unknown network error: "..tostring(msg))
 			else	
-				print("unrecognised command:", cmd)
+				print("comando ignorado:", cmd)
 			end
 		end
 	until not data
@@ -88,17 +86,14 @@ function love.update(dt)
 			local fy = (love.window.getHeight()/2-v.body:getY())*COEFICIENTEFORCA
 			v.body:applyForce(fx+v.fx,fy+v.fy)
 			if math.dist(v.body:getX(),v.body:getY(),love.window.getWidth()/2,love.window.getHeight()/2)>300 then
+				numeroDeJogadores=numeroDeJogadores-1
 				for index,outroJogador in ipairs(listaDeJogadores) do -- 3 vezes só pra garantir
-					udp:sendto(string.format("%s %s",v.entity, 'derrotado'), outroJogador.ip,  outroJogador.porta)
-					--udp:sendto(string.format("%s %s ", 'derrotado', entity), outroJogador.ip,  outroJogador.porta)
-					--udp:sendto(string.format("%s %s %d", 'derrotado', entity), outroJogador.ip,  outroJogador.porta)
+					udp:sendto(string.format("%s %s %s",v.entity, 'derrotado','ignorar'), outroJogador.ip,  outroJogador.porta)
 				end
-				table.remove(jogadores,v.entity)
-				if #jogadores ==1 then
+				jogadores[i]=nil
+				if numeroDeJogadores ==1 then
 					for index,outroJogador in ipairs(listaDeJogadores) do -- 3 vezes só pra garantir
-						udp:sendto(string.format("%s %s",jogadores[1].entity, 'vencedor'), outroJogador.ip,  outroJogador.porta)
-						--udp:sendto(string.format("%s %d", 'vencedor', jogadores[1].entity), outroJogador.ip,  outroJogador.porta)
-						--udp:sendto(string.format("%s %d", 'vencedor', jogadores[1].entity), outroJogador.ip,  outroJogador.porta)
+						udp:sendto(string.format("%s %s $s",jogadores[1].entity, 'vencedor','ignorar'), outroJogador.ip,  outroJogador.porta)
 					end
 				end
 				break  -- se continuar o loop vai dar pau por causa do jogador a menos
@@ -115,7 +110,7 @@ function love.draw()
     if ESTADO  == "espera" then
     	love.graphics.print("ESPERANDO JOGADORES",10,10,0,4,4)
 	elseif ESTADO == "jogando" then
-		love.graphics.print("jogando "..#jogadores.."vivos",10,10,0,1,1)
+		love.graphics.print("jogando "..numeroDeJogadores.."vivos",10,10,0,1,1)
 	end
 	for i,v in pairs(jogadores) do
 		v.draw()	
