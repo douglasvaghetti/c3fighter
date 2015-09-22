@@ -54,7 +54,7 @@ function love.update(dt)
 				end
 			elseif cmd =='init' then
 				local nome = parms:match("^(%S*)$")
-				print("recebeu init, nome ='"..nome.."' entidade = ",entity)
+				print("recebeu init, nome ='"..nome.."' entidade = ",entity,"port ou nil =",port_or_nil)
 				local angulo = (math.random(360)/180.0)*math.pi
 				local x = love.window.getWidth()/2+math.cos(angulo)*100
 				local y = love.window.getHeight()/2+math.sin(angulo)*100
