@@ -129,7 +129,7 @@ local function clamp(x,minx,maxx)
 end
 
 function love.update(dt)
-	if ESTADO== "INGAME" then
+	--if ESTADO== "INGAME" then
 		if objects[euMesmo] then
 			t = t + dt
 			local maxForca = 200
@@ -143,7 +143,7 @@ function love.update(dt)
 				t=t-updaterate -- set t for the next round
 			end
 		end
-	end
+	--end
 	local retorno
 	repeat
 		retorno = recebeMensagem()

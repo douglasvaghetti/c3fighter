@@ -93,8 +93,11 @@ function love.update(dt)
 				jogadores[i]=nil
 				if numeroDeJogadores ==1 then
 					for index,outroJogador in ipairs(listaDeJogadores) do -- 3 vezes só pra garantir
-						udp:sendto(string.format("%s %s $s",jogadores[1].entity, 'vencedor','ignorar'), outroJogador.ip,  outroJogador.porta)
+						for i, v in pairs(jogadores) do --na verdade vai ser só um sempre, eu precisava só do indice
+							udp:sendto(string.format("%s %s $s",i, 'vencedor','ignorar'), outroJogador.ip,  outroJogador.porta)
+						end
 					end
+					ESTADO = "FIM"
 				end
 				break  -- se continuar o loop vai dar pau por causa do jogador a menos
 			end
@@ -111,6 +114,8 @@ function love.draw()
     	love.graphics.print("ESPERANDO JOGADORES",10,10,0,4,4)
 	elseif ESTADO == "jogando" then
 		love.graphics.print("jogando "..numeroDeJogadores.."vivos",10,10,0,1,1)
+	elseif ESTADO == "FIM" then
+		love.graphics.print("JOGO ENCERRADO",10,10,0,4,4)
 	end
 	for i,v in pairs(jogadores) do
 		v.draw()	
