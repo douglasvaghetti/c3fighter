@@ -20,15 +20,23 @@ local function recebeMensagem()
 	if data then 
 		ent, cmd, parms = data:match("^(%S*) (%S*) (.*)")
 		if cmd == 'at' then
-			local x, y = parms:match("^(%-?[%d.e]*) (%-?[%d.e]*)$")
-			assert(x and y) 
-			x, y = tonumber(x), tonumber(y)
+			local x, y , angulo = parms:match("^(%-?[%d.e]*) (%-?[%d.e]*) (%-?[%d.e]*)$")
+			assert(x and y and angulo) 
+			x, y, angulo = tonumber(x), tonumber(y), tonumber(angulo)
 			if objects[ent] then
 				objects[ent].x = x
 				objects[ent].y = y
+				objects[ent].angulo = math.rad(angulo)
 			else
-				objects[ent] = loadPlayer(x,y,graficos["bauru"])
+				error("TRETA: recebeu as coordenadas de um jogador que nao foi inicializado")
 			end
+		elseif cmd == 'init' then
+			local x, y,nome = parms:match("^(%-?[%d.e]*) (%-?[%d.e]*) (%S*)$")
+			print("tudo ok com o init. nome ="..nome)
+			assert(x and y) 
+			x, y = tonumber(x), tonumber(y)
+			objects[ent] = loadPlayer(x,y,nome)
+			print("tamaho = "..#objects.." ent = "..ent)
 		else
 			print("unrecognised command:", cmd)
 		end
@@ -65,9 +73,6 @@ function love.load(args)
 	udp:send(init)
 	t = 0 -- (re)set t to 0
 	retorno = false
-	while not retorno do
-		retorno = recebeMensagem() --espera a primeira posição
-	end
 
 end
 
@@ -79,7 +84,12 @@ function love.draw()
 	if( fx and fy ) then 
 		love.graphics.print("fx = "..fx.." fy = "..fy,10,10)
 	end
-    love.graphics.circle("line", love.window.getWidth()/2, love.window.getHeight()/2, 300, 100); -- Draw white circle with 100 segments.
+	if objects[euMesmo]==nil then
+		love.graphics.print("esperando lista de jogadores",10,30)
+	else
+		love.graphics.print(#objects.." conectados",10,30)
+	end
+    love.graphics.circle("line", love.window.getWidth()/2, love.window.getHeight()/2, 300, 100);
 	for i,v in pairs(objects) do
 		v.draw()	
 	end
@@ -91,16 +101,18 @@ end
 
 function love.update(dt)
 	
-	t = t + dt
-	local maxForca = 200
-	if t > updaterate then
-		fx = ((love.mouse.getX()-objects[euMesmo].x))*COEFICIENTEFORCA
-		fy = ((love.mouse.getY()-objects[euMesmo].y))*COEFICIENTEFORCA
-		fx = clamp(fx,-maxForca,maxForca)
-		fy = clamp(fy,-maxForca,maxForca)
-		local dg = string.format("%s %s %f %f", euMesmo, 'update', fx, fy)
-		udp:send(dg)
-		t=t-updaterate -- set t for the next round
+	if objects[euMesmo] then
+		t = t + dt
+		local maxForca = 200
+		if t > updaterate then
+			fx = ((love.mouse.getX()-objects[euMesmo].x))*COEFICIENTEFORCA
+			fy = ((love.mouse.getY()-objects[euMesmo].y))*COEFICIENTEFORCA
+			fx = clamp(fx,-maxForca,maxForca)
+			fy = clamp(fy,-maxForca,maxForca)
+			local dg = string.format("%s %s %f %f", euMesmo, 'update', fx, fy)
+			udp:send(dg)
+			t=t-updaterate -- set t for the next round
+		end
 	end
 	local retorno
 	repeat
@@ -124,7 +136,7 @@ local function geraFuncaoDraw(grafico,raio,player)
 	local cauda = {}
 	return  function() 
 				drawCauda(cauda,grafico:getWidth()*escala/2,20)
-				love.graphics.draw(grafico,player.x,player.y,0,escala,escala,grafico:getWidth()/2,grafico:getWidth()/2)
+				love.graphics.draw(grafico,player.x,player.y,player.angulo,escala,escala,grafico:getWidth()/2,grafico:getWidth()/2)
 				--TODO: AJUSTAR O ANGULO TAMBEM
 				table.insert(cauda,{x=player.x,y=player.y})
 				if #cauda==20 then table.remove(cauda,1) end
@@ -135,6 +147,8 @@ function loadPlayer(x,y,grafico)
 	local player = {}
 	player.x = x
 	player.y = y
-	player.draw = geraFuncaoDraw(grafico,40,player)     
+	player.angulo = 0
+	player.grafico = grafico
+	player.draw = geraFuncaoDraw(graficos[grafico],40,player)     
 	return player 
 end
