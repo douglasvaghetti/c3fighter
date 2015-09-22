@@ -34,8 +34,11 @@ function love.load(args)
 
 	love.physics.setMeter(64) --the height of a meter our worlds will be 64px
 	world = love.physics.newWorld(0, 0, true)
-	COEFICIENTEFORCA = 1
+	COEFICIENTEFORCA = 5
+
 end
+
+function math.dist(x1,y1, x2,y2) return ((x2-x1)^2+(y2-y1)^2)^0.5 end
 
 function love.update(dt)
 	repeat
@@ -59,7 +62,7 @@ function love.update(dt)
 				local x = love.window.getWidth()/2+math.cos(angulo)*100
 				local y = love.window.getHeight()/2+math.sin(angulo)*100
 				table.insert(listaDeJogadores,{ip=msg_or_ip,porta=port_or_nil})
-				jogadores[entity] = loadPlayer(x,y,nome)
+				jogadores[entity] = loadPlayer(x,y,nome,entity)
 				if #listaDeJogadores == numeroDeJogadores then
 					print("montou a lista completa de jogadores")
 					for index,outroJogador in ipairs(listaDeJogadores) do	
@@ -84,8 +87,25 @@ function love.update(dt)
 			local fx = (love.window.getWidth()/2-v.body:getX())*COEFICIENTEFORCA
 			local fy = (love.window.getHeight()/2-v.body:getY())*COEFICIENTEFORCA
 			v.body:applyForce(fx+v.fx,fy+v.fy)
+			if math.dist(v.body:getX(),v.body:getY(),love.window.getWidth()/2,love.window.getHeight()/2)>300 then
+				for index,outroJogador in ipairs(listaDeJogadores) do -- 3 vezes só pra garantir
+					udp:sendto(string.format("%s %d", 'derrotado', entity), outroJogador.ip,  outroJogador.porta)
+					udp:sendto(string.format("%s %d", 'derrotado', entity), outroJogador.ip,  outroJogador.porta)
+					udp:sendto(string.format("%s %d", 'derrotado', entity), outroJogador.ip,  outroJogador.porta)
+				end
+				table.remove(jogadores,v.entity)
+				if #jogadores ==1 then
+					for index,outroJogador in ipairs(listaDeJogadores) do -- 3 vezes só pra garantir
+						udp:sendto(string.format("%s %d", 'vencedor', jogadores[1].entity), outroJogador.ip,  outroJogador.porta)
+						udp:sendto(string.format("%s %d", 'vencedor', jogadores[1].entity), outroJogador.ip,  outroJogador.porta)
+						udp:sendto(string.format("%s %d", 'vencedor', jogadores[1].entity), outroJogador.ip,  outroJogador.porta)
+					end
+				end
+				break  -- se continuar o loop vai dar pau por causa do jogador a menos
+			end
 		end
 	end
+
 end
 
 function love.draw()
@@ -95,7 +115,7 @@ function love.draw()
     if ESTADO  == "espera" then
     	love.graphics.print("ESPERANDO JOGADORES",10,10,0,4,4)
 	elseif ESTADO == "jogando" then
-		love.graphics.print("jogando",10,10,0,1,1)
+		love.graphics.print("jogando "..#jogadores.."vivos",10,10,0,1,1)
 	end
 	for i,v in pairs(jogadores) do
 		v.draw()	
@@ -121,7 +141,7 @@ local function geraFuncaoDraw(grafico,raio,body)
 	end
 end	
 
-function loadPlayer(posx,posy,grafico)
+function loadPlayer(posx,posy,grafico,entity)
 	local player = {}
 	player.body = love.physics.newBody(world, posx, posy, "dynamic") --place the body in the center of the world and make it dynamic, so it can move around
 	player.shape = love.physics.newCircleShape(40) --the ball's shape has a radius of 20
@@ -131,5 +151,6 @@ function loadPlayer(posx,posy,grafico)
 	player.draw = geraFuncaoDraw(graficos[grafico],40,player.body)
 	player.fx = 0
 	player.fy = 0
+	player.entity = entity
 	return player
 end
