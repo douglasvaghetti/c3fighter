@@ -38,22 +38,16 @@ local function recebeMensagem()
 			objects[ent] = loadPlayer(x,y,nome)
 			print("tamaho = "..#objects.." ent = "..ent)
 		elseif cmd == 'derrotado' then
-			local entidade = parms:match("^(%-?[%d.e]*)$")
-			assert(entidade)
-			entidade = tonumber(entidade)
-			print("jogador ",entidade," eliminado")
-			if objects[entidade] then
+			print("jogador ",ent," eliminado")
+			if objects[ent] then
 				table.remove(objects,ent)
 			end
 			if entidade==euMesmo then
 				ESTADO = "MORTO"
 			end
 		elseif cmd == 'vencedor' then
-			local entidade = parms:match("^(%-?[%d.e]*)$")
-			assert(entidade)
-			entidade = tonumber(entidade)
-			print("jogador ",entidade," é o vencedor")
-			if entidade==euMesmo then
+			print("jogador ",ent," é o vencedor")
+			if ent==euMesmo then
 				ESTADO = "VENCEDOR"
 			end
 		else

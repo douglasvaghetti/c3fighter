@@ -89,16 +89,16 @@ function love.update(dt)
 			v.body:applyForce(fx+v.fx,fy+v.fy)
 			if math.dist(v.body:getX(),v.body:getY(),love.window.getWidth()/2,love.window.getHeight()/2)>300 then
 				for index,outroJogador in ipairs(listaDeJogadores) do -- 3 vezes só pra garantir
-					udp:sendto(string.format("%s %d", 'derrotado', entity), outroJogador.ip,  outroJogador.porta)
-					udp:sendto(string.format("%s %d", 'derrotado', entity), outroJogador.ip,  outroJogador.porta)
-					udp:sendto(string.format("%s %d", 'derrotado', entity), outroJogador.ip,  outroJogador.porta)
+					udp:sendto(string.format("%s %s",v.entity, 'derrotado'), outroJogador.ip,  outroJogador.porta)
+					--udp:sendto(string.format("%s %s ", 'derrotado', entity), outroJogador.ip,  outroJogador.porta)
+					--udp:sendto(string.format("%s %s %d", 'derrotado', entity), outroJogador.ip,  outroJogador.porta)
 				end
 				table.remove(jogadores,v.entity)
 				if #jogadores ==1 then
 					for index,outroJogador in ipairs(listaDeJogadores) do -- 3 vezes só pra garantir
-						udp:sendto(string.format("%s %d", 'vencedor', jogadores[1].entity), outroJogador.ip,  outroJogador.porta)
-						udp:sendto(string.format("%s %d", 'vencedor', jogadores[1].entity), outroJogador.ip,  outroJogador.porta)
-						udp:sendto(string.format("%s %d", 'vencedor', jogadores[1].entity), outroJogador.ip,  outroJogador.porta)
+						udp:sendto(string.format("%s %s",jogadores[1].entity, 'vencedor'), outroJogador.ip,  outroJogador.porta)
+						--udp:sendto(string.format("%s %d", 'vencedor', jogadores[1].entity), outroJogador.ip,  outroJogador.porta)
+						--udp:sendto(string.format("%s %d", 'vencedor', jogadores[1].entity), outroJogador.ip,  outroJogador.porta)
 					end
 				end
 				break  -- se continuar o loop vai dar pau por causa do jogador a menos
