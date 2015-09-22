@@ -45,13 +45,14 @@ function love.update(dt)
 		data, msg_or_ip, port_or_nil = udp:receivefrom()
 		if data then
 			entity, cmd, parms = data:match("^(%S*) (%S*) (.*)")		
-			if cmd == 'update' and jogadores[entity] then
+			if cmd == 'update' then
 				local x, y = parms:match("^(%-?[%d.e]*) (%-?[%d.e]*)$")
 				assert(x and y) -- validation is better, but asserts will serve.
 				x, y = tonumber(x), tonumber(y)
-
-				jogadores[entity].fx = x
-				jogadores[entity].fy = y
+				if jogadores[entity] then
+					jogadores[entity].fx = x
+					jogadores[entity].fy = y
+				end
 				for k, v in pairs(jogadores) do
 					udp:sendto(string.format("%s %s %d %d %d", k, 'at', v.body:getX(), v.body:getY(),math.deg(v.body:getAngle())), msg_or_ip,  port_or_nil)
 				end
