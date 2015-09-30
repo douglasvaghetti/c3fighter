@@ -37,6 +37,19 @@ local function recebeMensagem()
 			x, y = tonumber(x), tonumber(y)
 			objects[ent] = loadPlayer(x,y,nome)
 			print("tamaho = "..#objects.." ent = "..ent)
+		elseif cmd == 'derrotado' then
+			print("jogador ",ent," eliminado")
+			if objects[ent] then
+				objects[ent] = nil
+			end
+			if ent==euMesmo then
+				ESTADO = "MORTO"
+			end
+		elseif cmd == 'vencedor' then
+			print("jogador ",ent," é o vencedor")
+			if ent==euMesmo then
+				ESTADO = "VENCEDOR"
+			end
 		else
 			print("unrecognised command:", cmd)
 		end
@@ -51,6 +64,7 @@ function love.load(args)
 	
 	objects = {}
 	COEFICIENTEFORCA = 5
+	ESTADO = "INGAME"
 
 	udp = socket.udp()
 	udp:settimeout(0)
@@ -82,17 +96,32 @@ end
 function love.draw()
 	love.graphics.setColor(255,0, 0)
 	love.graphics.setLineWidth(10.0)
+	love.graphics.circle("line", love.window.getWidth()/2, love.window.getHeight()/2, 300, 100);
+	love.graphics.setColor(255,255, 255)
+
 	if( fx and fy ) then 
 		love.graphics.print("fx = "..fx.." fy = "..fy,10,10)
 	end
-	if objects[euMesmo]==nil then
-		love.graphics.print("esperando lista de jogadores",10,30)
-	else
-		love.graphics.print(#objects.." conectados",10,30)
-	end
-    love.graphics.circle("line", love.window.getWidth()/2, love.window.getHeight()/2, 300, 100);
+	
+    
 	for i,v in pairs(objects) do
 		v.draw()	
+	end
+
+	if ESTADO == "INGAME" then
+		if objects[euMesmo]==nil then
+			love.graphics.print("esperando lista de jogadores",10,30)
+		else
+			love.graphics.print(#objects.." conectados",10,30)
+		end
+	elseif ESTADO == "MORTO" then
+		love.graphics.setColor(255,0, 0)
+		love.graphics.print("Voce perdeu.",10,30,0,5)
+		love.graphics.setColor(255,255, 255)
+	elseif ESTADO == "VENCEDOR" then 
+		love.graphics.setColor(0,255, 0)
+		love.graphics.print("Voce venceu!!!11!!onze",10,30,0,5)
+		love.graphics.setColor(255,255, 255)
 	end
 end
 
@@ -101,20 +130,21 @@ local function clamp(x,minx,maxx)
 end
 
 function love.update(dt)
-	
-	if objects[euMesmo] then
-		t = t + dt
-		local maxForca = 200
-		if t > updaterate then
-			fx = ((love.mouse.getX()-objects[euMesmo].x))*COEFICIENTEFORCA
-			fy = ((love.mouse.getY()-objects[euMesmo].y))*COEFICIENTEFORCA
-			fx = clamp(fx,-maxForca,maxForca)
-			fy = clamp(fy,-maxForca,maxForca)
-			local dg = string.format("%s %s %f %f", euMesmo, 'update', fx, fy)
-			udp:send(dg)
-			t=t-updaterate -- set t for the next round
+	--if ESTADO== "INGAME" then
+		if objects[euMesmo] then
+			t = t + dt
+			local maxForca = 200
+			if t > updaterate then
+				fx = ((love.mouse.getX()-objects[euMesmo].x))*COEFICIENTEFORCA
+				fy = ((love.mouse.getY()-objects[euMesmo].y))*COEFICIENTEFORCA
+				fx = clamp(fx,-maxForca,maxForca)
+				fy = clamp(fy,-maxForca,maxForca)
+				local dg = string.format("%s %s %f %f", euMesmo, 'update', fx, fy)
+				udp:send(dg)
+				t=t-updaterate -- set t for the next round
+			end
 		end
-	end
+	--end
 	local retorno
 	repeat
 		retorno = recebeMensagem()
