@@ -18,17 +18,19 @@ function love.load(args)
 		ze = love.graphics.newImage("gfx/ze.png")
 	}
 
-	if #args ~=2 then 
-		print("modo de uso: love . numeroDeJogadores")
+	if #args ~=3 then 
+		print("modo de uso: love . porta numeroDeJogadores")
 		love.event.quit()
 	end
 
 	ESTADO = "espera"
-	numeroDeJogadores = tonumber(args[2])
+
+	porta = tonumber(args[2])
+	numeroDeJogadores = tonumber(args[3])
 	listaDeJogadores = {}
 
 	udp:settimeout(0)
-	udp:setsockname('*', 12345)
+	udp:setsockname('*', porta)
 	jogadores = {} 
 	data, msg_or_ip, port_or_nil = udp:receivefrom()
 

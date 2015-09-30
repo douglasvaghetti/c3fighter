@@ -54,18 +54,19 @@ function love.load(args)
 
 	udp = socket.udp()
 	udp:settimeout(0)
-	if #args ~=3 then
+	if #args ~=4 then
 		print("modo de uso: (na pasta do jogo) love . ipservidor professor")
 		love.event.quit()
 	end
-	local ip_servidor = args[2]
-	local professor = args[3]
+	local porta_servidor = tonumber(args[2])
+	local ip_servidor = args[3]
+	local professor = args[4]
 	if graficos[professor]==nil then
 		print("professor desconhecido")
 		love.event.quit()
 	end
 	print ("iniciando cliente, servidor =  ",ip_servidor, "professor = ",professor)
-	udp:setpeername(ip_servidor, 12345)
+	udp:setpeername(ip_servidor, porta_servidor)
 	math.randomseed(os.time())
 	euMesmo = tostring(math.random(99999))
 
