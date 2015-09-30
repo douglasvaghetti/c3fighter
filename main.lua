@@ -37,6 +37,7 @@ local function recebeMensagem()
 			x, y = tonumber(x), tonumber(y)
 			objects[ent] = loadPlayer(x,y,nome)
 			print("tamaho = "..#objects.." ent = "..ent)
+			tempoFinal = 5
 		elseif cmd == 'derrotado' then
 			print("jogador ",ent," eliminado")
 			if objects[ent] then
@@ -45,6 +46,7 @@ local function recebeMensagem()
 			if ent==euMesmo then
 				ESTADO = "MORTO"
 			end
+			tempoFinal = 5
 		elseif cmd == 'vencedor' then
 			print("jogador ",ent," é o vencedor")
 			if ent==euMesmo then
@@ -145,6 +147,13 @@ function love.update(dt)
 			end
 		end
 	--end
+
+	if ESTADO == "MORTO" or ESTADO == "VENCEDOR" then
+		tempoFinal = tempoFinal-dt
+		if tempoFinal<0 then
+			love.event.quit()
+		end
+	end
 	local retorno
 	repeat
 		retorno = recebeMensagem()

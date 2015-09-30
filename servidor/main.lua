@@ -74,6 +74,7 @@ function love.update(dt)
 						end
 					end
 					ESTADO = "jogando"
+					tempoFinal = 5
 				end
 			else	
 				print("comando ignorado:", cmd)
@@ -104,6 +105,11 @@ function love.update(dt)
 				end
 				break  -- se continuar o loop vai dar pau por causa do jogador a menos
 			end
+		end
+	elseif ESTADO == "FIM" then
+		tempoFinal = tempoFinal - dt
+		if tempoFinal< 0 then
+			love.event.quit()
 		end
 	end
 
